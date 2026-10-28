@@ -1,0 +1,30 @@
+[project]
+name = "mail-backend"
+version = "0.1.0"
+description = "Бэкенд API панели почтового сервера Pochtamt (FastAPI + PostgreSQL)"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.118.0",
+    "uvicorn[standard]==0.37.0",
+    "pydantic==2.11.9",
+    "pydantic-settings==2.10.1",
+    "psycopg[binary,pool]==3.2.10",
+    "PyJWT==2.10.1",
+    "bcrypt==4.3.0",
+    "ldap3==2.9.1",
+    "redis==6.4.0",
+    "cryptography==45.0.7",
+    "httpx==0.28.1",
+    "dnspython==2.8.0",
+    "sievelib==1.5.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.4.2", "ruff==0.13.3"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

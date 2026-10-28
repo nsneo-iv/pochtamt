@@ -1,0 +1,16 @@
+# Агент панели: только эти команды. Аргументы ограничены регулярными выражениями sudo (^...$, sudo >= 1.9.10):
+# звёздочка в sudoers совпадает и с пробелами, поэтому `postsuper -d A -d ALL` по ней бы прошёл.
+Defaults:mailagent !requiretty
+mailagent ALL=(root) NOPASSWD: /usr/sbin/postqueue -j
+mailagent ALL=(root) NOPASSWD: /usr/sbin/postqueue -f
+mailagent ALL=(root) NOPASSWD: /usr/sbin/postsuper ^-d[[:space:]][A-Z0-9]{6,20}$
+mailagent ALL=(root) NOPASSWD: /usr/bin/doveadm -f tab quota get -A
+mailagent ALL=(root) NOPASSWD: /usr/bin/systemctl restart clamav-freshclam
+# помощник сам проверяет белый список ключей и значения (agent/apply_settings.py)
+mailagent ALL=(root) NOPASSWD: /opt/mail-agent/apply_settings.py get
+mailagent ALL=(root) NOPASSWD: /opt/mail-agent/apply_settings.py ^set[[:space:]](postfix|dovecot)[[:space:]][a-z_]{3,64}[[:space:]][^[:cntrl:]]{1,250}$
+# состояние: сессии IMAP, баны fail2ban, хвост лога Postfix (только чтение)
+mailagent ALL=(root) NOPASSWD: /usr/bin/doveadm -f tab who
+mailagent ALL=(root) NOPASSWD: /usr/bin/fail2ban-client status
+mailagent ALL=(root) NOPASSWD: /usr/bin/fail2ban-client ^status[[:space:]][a-z0-9-]{1,32}$
+mailagent ALL=(root) NOPASSWD: /usr/bin/tail -c 20000000 /var/log/postfix.log

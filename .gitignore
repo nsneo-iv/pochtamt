@@ -1,0 +1,30 @@
+# ---- секреты: только локально, образцы — в .env.example каждой папки ----
+.env
+*.env
+!.env.example
+*-credentials.txt
+keys/*
+!keys/*.pub
+.claude/
+
+# ---- сгенерированные конфиги (install/render.py подставляет значения из .env) ----
+install/out/
+
+# ---- python ----
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# ---- frontend ----
+frontend/node_modules/
+frontend/dist/
+*.egg-info/
+
+# ---- сертификаты: TLS с другого хоста (install/fetch-cert.sh) и сертификат контроллера домена ----
+install/certs/
+
+# выгрузки миграции (в них хеши паролей)
+*.tsv
+*-export/

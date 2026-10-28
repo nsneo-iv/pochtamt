@@ -1,0 +1,48 @@
+# Проверки на каждый push: секреты, бэкенд (ruff + pytest), агент (pytest), шаблоны, фронт (vue-tsc + build).
+# Зеркало правил из .github/workflows/ci.yml для GitLab.
+stages: [check, test, build]
+
+secrets:
+  stage: check
+  image: python:3.12-slim
+  script:
+    - python tools/check_secrets.py --all
+
+backend:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - cd backend
+    - pip install -q -e ".[dev]"
+    - ruff check app tests
+    - pytest -q
+
+agent:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install -q pytest
+    - pytest -q agent/tests
+
+templates:
+  stage: test
+  image: python:3.12-slim
+  script:
+    # все плейсхолдеры шаблонов должны быть описаны в .env.example; проверяем с AD и без
+    - cp install/.env.example install/.env
+    - sed -i 's/^\([A-Z_]*\)=$/\1=ci-placeholder/' install/.env
+    - python install/render.py --check
+    - sed -i 's|^AD_LDAP_URI=.*|AD_LDAP_URI=ldaps://dc.corp.local:3269|; s/^AD_BIND_USER=.*/AD_BIND_USER=svc@corp.local/; s/^AD_BASE_DN=.*/AD_BASE_DN=DC=corp,DC=local/' install/.env
+    - python install/render.py --check
+
+frontend:
+  stage: build
+  image: node:24-alpine
+  script:
+    - cd frontend
+    - npm ci
+    - npx vue-tsc --noEmit
+    - npm run build
+  artifacts:
+    paths: [frontend/dist]
+    expire_in: 1 week

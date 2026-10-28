@@ -1,0 +1,8 @@
+[Unit]
+Description=Pochtamt: выборка нагрузки для графиков состояния
+
+[Service]
+Type=oneshot
+User=mailapp
+WorkingDirectory=/opt/mail/backend
+ExecStart=/opt/mail/backend/.venv/bin/python -m app.cli system-sample

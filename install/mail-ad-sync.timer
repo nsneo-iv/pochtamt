@@ -1,0 +1,9 @@
+[Unit]
+Description=Pochtamt: синхронизация с AD раз в час
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target

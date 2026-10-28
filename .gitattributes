@@ -1,0 +1,10 @@
+# Скрипты для Linux должны уходить на серверы с LF, иначе bash ломается на \r
+* text=auto eol=lf
+# Пакетные файлы Windows — только CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ini text eol=crlf
+# Бинарные
+*.png binary
+*.pdf binary
+*.ps1 text eol=crlf

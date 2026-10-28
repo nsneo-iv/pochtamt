@@ -1,0 +1,6 @@
+# домены, за которые принимаем почту (свои и доменные алиасы)
+hosts = 127.0.0.1
+user = mail_postfix
+password = @DB_POSTFIX_PASSWORD@
+dbname = mail
+query = SELECT domain FROM v_postfix_domains WHERE domain = '%s'

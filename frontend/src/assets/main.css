@@ -1,0 +1,542 @@
+/* Базовые стили панели: раскладка с левым меню, формы, вспомогательные классы.
+   Цвета берутся из токенов PrimeVue (--p-*), поэтому работают и в светлой, и в тёмной теме.
+   Тёмная тема включается классом .app-dark на <html> (см. stores/theme.ts). */
+
+:root {
+  --app-sidebar-width: 240px;
+
+  /* Светлая тема: фон страницы чуть темнее карточек, сайдбар тёмный */
+  --app-bg: var(--p-surface-100);
+  --app-card-bg: var(--p-content-background);
+  --app-card-border: var(--p-content-border-color);
+  --app-code-bg: var(--p-surface-100);
+  --app-sidebar-bg: var(--p-surface-900);
+  --app-sidebar-border: var(--p-surface-700);
+  --app-sidebar-text: var(--p-surface-300);
+  --app-sidebar-text-muted: var(--p-surface-400);
+  --app-sidebar-text-active: var(--p-surface-0);
+  --app-sidebar-hover-bg: var(--p-surface-800);
+}
+
+:root.app-dark {
+  /* Тёмная тема: фон почти чёрный, карточки — surface-900 из токенов content, сайдбар ещё темнее */
+  --app-bg: var(--p-surface-950);
+  --app-code-bg: var(--p-surface-800);
+  --app-sidebar-bg: var(--p-surface-950);
+  --app-sidebar-border: var(--p-surface-800);
+  --app-sidebar-text: var(--p-surface-400);
+  --app-sidebar-text-muted: var(--p-surface-500);
+  --app-sidebar-text-active: var(--p-surface-0);
+  --app-sidebar-hover-bg: var(--p-surface-900);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: var(--p-text-color);
+  background: var(--app-bg);
+}
+
+#app {
+  min-height: 100%;
+}
+
+a {
+  color: var(--p-primary-color);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--p-text-color);
+}
+
+/* ---- Лейаут ---- */
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.layout__sidebar {
+  width: var(--app-sidebar-width);
+  flex: 0 0 var(--app-sidebar-width);
+  background: var(--app-sidebar-bg);
+  color: var(--app-sidebar-text-active);
+  border-right: 1px solid var(--app-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.layout__brand {
+  padding: 1.25rem 1.25rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--app-sidebar-border);
+}
+
+.layout__brand .pi {
+  color: var(--p-primary-color);
+}
+
+.layout__menu {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.layout__menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 1.25rem;
+  color: var(--app-sidebar-text);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.layout__menu a:hover {
+  background: var(--app-sidebar-hover-bg);
+  color: var(--app-sidebar-text-active);
+}
+
+.layout__menu a.router-link-active {
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+}
+
+.layout__user {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--app-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.layout__user-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout__user-role {
+  color: var(--app-sidebar-text-muted);
+  font-size: 0.8rem;
+}
+
+.layout__user-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.layout__content {
+  flex: 1;
+  min-width: 0;
+  padding: 1.5rem 2rem;
+}
+
+.page-title {
+  margin: 0 0 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* ---- Панель инструментов над таблицей ---- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.toolbar__spacer {
+  flex: 1;
+}
+
+.card {
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-card-border);
+  border-radius: var(--p-border-radius-lg, 8px);
+  padding: 1.25rem;
+  min-width: 0;
+}
+
+.card__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* ---- Формы в диалогах ---- */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 360px;
+}
+
+.form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form__field label {
+  font-weight: 500;
+}
+
+.form__row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.form__row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+.form__hint {
+  font-size: 0.8rem;
+  color: var(--p-text-muted-color);
+}
+
+.form__check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ---- Вспомогательные ---- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+/* Длинные значения (DNS-записи, ключи, адреса) переносятся в любом месте, но не выходят за границы */
+.mono {
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.muted {
+  color: var(--p-text-muted-color);
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.dns-record {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.dns-record__label {
+  font-weight: 500;
+  padding-top: 0.4rem;
+}
+
+.dns-record__value {
+  background: var(--app-code-bg);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  max-height: 160px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: var(--app-card-bg);
+  border: 1px solid var(--app-card-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--p-text-color);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.stat-card > div {
+  min-width: 0;
+}
+
+.stat-card__value {
+  overflow-wrap: anywhere;
+}
+
+.stat-card__icon {
+  font-size: 1.75rem;
+  color: var(--p-primary-color);
+}
+
+.stat-card__value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat-card__label {
+  color: var(--p-text-muted-color);
+  font-size: 0.85rem;
+}
+
+.stat-card--small .stat-card__value {
+  font-size: 1.25rem;
+}
+
+.sync-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.sync-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 400px;
+  overflow: auto;
+}
+
+.sync-list li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--app-card-border);
+}
+
+.sync-list pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ---- Дашборд домена ---- */
+
+/* Сетка карточек: от 420px, на узких экранах одна колонка; карточки не сжимаются ниже содержимого */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  min-width: 0;
+}
+
+.dash-grid > .card {
+  min-width: 0;
+}
+
+.dns-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dns-row {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  min-width: 0;
+  gap: 0.25rem 0.75rem;
+  align-items: start;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--app-card-border);
+}
+
+.dns-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dns-row__name {
+  font-weight: 600;
+  padding-top: 0.15rem;
+}
+
+.dns-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.dns-row__line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dns-row__line .mono {
+  flex: 1 1 auto;
+  background: var(--app-code-bg);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dns-row__line > .p-button {
+  flex: 0 0 auto;
+}
+
+.top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.top-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.top-item__head > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.audit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-list li {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  overflow-wrap: anywhere;
+  gap: 0.25rem 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--app-card-border);
+  font-size: 0.9rem;
+}
+
+.audit-list li:last-child {
+  border-bottom: 0;
+}
+
+/* Пары «подпись — значение» в карточках */
+.kv {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.4rem 1rem;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.kv > span {
+  color: var(--p-text-muted-color);
+}
+
+.kv > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Поля PrimeVue внутри форм — всегда на всю ширину контейнера */
+.form .p-inputtext,
+.form .p-inputnumber,
+.form .p-select,
+.form .p-autocomplete,
+.form .p-password,
+.form .p-textarea,
+.form .p-datepicker {
+  width: 100%;
+  max-width: 100%;
+}
+
+.skeleton-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .layout__sidebar {
+    width: 100%;
+    flex-basis: auto;
+    height: auto;
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-sidebar-border);
+  }
+
+  .layout__content {
+    padding: 1rem;
+  }
+
+  .form {
+    min-width: 0;
+  }
+
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}

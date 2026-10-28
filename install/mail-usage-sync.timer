@@ -1,0 +1,9 @@
+[Unit]
+Description=Pochtamt: занятое место ящиков раз в 10 минут
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target
