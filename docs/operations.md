@@ -10,7 +10,8 @@ bash install/deploy.sh
 ```
 
 `install.sh` обновляет пакеты проекта (не системные), конфиги из шаблонов, зависимости бэкенда, фронт, схему базы
-(`db/schema.sql` идемпотентен, `ALTER … IF NOT EXISTS` для новых колонок) и перезапускает службы. Почта на время
+(`db/schema.sql` идемпотентен, `ALTER … IF NOT EXISTS` для новых колонок), пересобирает образ SOGo (если включён;
+так в него попадают обновления безопасности Debian) и перезапускает службы. Почта на время
 перезапуска Postfix/Dovecot (секунды) буферизуется отправителями, клиенты переподключаются.
 
 Системные обновления — обычный Debian: `apt update && apt upgrade`; `unattended-upgrades` для `security.debian.org`
@@ -40,6 +41,7 @@ bash install/deploy.sh
 | Секреты | `/opt/mail/install/.env`, `backend/.env`, `agent/.env`, `/etc/mail-agent.env`, `/etc/dovecot/master-users` | копия в защищённое место; без них восстановление = новые пароли ролей |
 | Сертификат | `/etc/letsencrypt` или `TLS_CERT`/`TLS_KEY` | при certbot переизлучается заново, при переносе проще скопировать |
 | Rspamd (байес, история) | Redis `/var/lib/redis/dump.rdb`, `/var/lib/rspamd/maps` | терять не страшно: DKIM-ключи восстанавливаются из базы (`cli dkim-sync`), байес переобучится |
+| SOGo (календари, контакты, настройки пользователей), если включён | PostgreSQL, база `sogo` | `sudo -u postgres pg_dump -Fc sogo > sogo.dump` |
 
 Проще всего — снапшот/бэкап всей VM раз в сутки плюс `pg_dump` чаще (база маленькая).
 
@@ -56,6 +58,7 @@ bash install/deploy.sh
 | `mail-ad-sync` | 1 ч | синхронизация с AD (включается только при заданном `AD_LDAP_URI`) |
 | `certbot` | 12 ч | продление сертификата (при `CERTBOT_EMAIL`) |
 | `clamav-freshclam` | служба | базы антивируса раз в час |
+| внутри контейнера `sogo` | 1 мин / 1 ч | напоминания SOGo по почте, чистка просроченных сессий |
 
 `systemctl list-timers 'mail-*'`, журнал: `journalctl -u mail-usage-sync`.
 
@@ -83,6 +86,7 @@ bash install/deploy.sh
 | Rspamd | `/var/log/rspamd/rspamd.log`; история проверок — в панели «Фильтр → История» |
 | Бэкенд, агент | `journalctl -u mail-backend`, `journalctl -u mail-agent` |
 | nginx | `/var/log/nginx/access.log`, `error.log` |
+| SOGo | `journalctl -u sogo` (вывод контейнера) |
 | fail2ban | `fail2ban-client status postfix` / `postfix-sasl` / `dovecot` / `sshd`; панель «Состояние» показывает баны |
 | Аудит изменений | панель «Аудит» (таблица `audit_log`, бэкенд может только добавлять записи) |
 

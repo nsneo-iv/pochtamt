@@ -4,8 +4,8 @@
 
 Pochtamt (Russian for "main post office") is a complete mail server for a small organisation on a single
 Debian 13 host: Postfix + Dovecot + Rspamd + ClamAV, PostgreSQL as the single source of truth, a FastAPI REST
-backend and a Vue 3 administration panel. No Docker: everything comes from Debian packages and is updated by
-`apt`. Users and passwords are local or, optionally, from Active Directory.
+backend and a Vue 3 administration panel. Everything comes from Debian packages and is updated by `apt`;
+Docker is used only for the optional SOGo groupware. Users and passwords are local or, optionally, from Active Directory.
 
 The core design rule: **the panel has no access to the host.** The backend writes only to PostgreSQL and Redis.
 Postfix and Dovecot read the database through views under read-only roles. The only window to the host is a tiny
@@ -26,6 +26,8 @@ agent whose commands are whitelisted in sudoers. A compromised panel does not gi
   hourly sync of users with a `mail` attribute and of groups into lists.
 - One idempotent install script for a clean Debian 13, deployment over SSH from a workstation, Let's Encrypt via
   certbot, nftables, fail2ban, systemd sandboxing, login throttling.
+- Optional SOGo (Docker, same host): CalDAV/CardDAV with invitations and free/busy, shared calendars and
+  address books, its own webmail, ActiveSync for Outlook and phones.
 - Migration tooling from iRedMail (domains, mailboxes with password hashes, forwards, Maildirs, DKIM keys).
 
 ## Layout
@@ -37,6 +39,7 @@ agent whose commands are whitelisted in sudoers. A compromised panel does not gi
 | `backend/` | FastAPI backend and CLI (`python -m app.cli`) |
 | `frontend/` | Vue 3 + PrimeVue admin panel and user cabinet |
 | `agent/` | host agent (Postfix queue, Dovecot quotas, whitelisted service parameters) |
+| `sogo/` | optional SOGo in Docker (image built from Debian packages, config, compose) |
 | `install/` | `install.sh`, `deploy.sh`, systemd units, nginx, fail2ban, nftables, migration helpers |
 | `docs/` | documentation (Russian) |
 | `tools/` | pre-commit secret check, LDAPS certificate script for a domain controller |

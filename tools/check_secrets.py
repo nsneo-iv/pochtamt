@@ -23,7 +23,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SAFE_SUFFIX = ("_USER", "_HOST", "_URL", "_URI", "_ID", "_IP", "_SERVER", "_PORT", "_PATH", "_PREFIXES", "_HOSTKEY",
                "_ROOT", "_MODE", "_EMAIL", "_UID", "_GID", "_NAME", "_PUBKEY", "JUMP_KEY", "TZ",
                # этот репозиторий: имена хостов, каталоги, сети, DN и пути к ключам — не секреты
-               "_HOSTNAME", "_DIR", "_NETS", "_DN", "_SUFFIX", "_NETBIOS", "_CERT", "TLS_KEY", "SSH_KEY", "_DNS")
+               "_HOSTNAME", "_DIR", "_NETS", "_DN", "_SUFFIX", "_NETBIOS", "_CERT", "TLS_KEY", "SSH_KEY", "_DNS",
+               "_FILE", "_ZONE", "_ZONES", "_TIMEZONE", "_WORKERS", "_MIRRORS", "_DOMAINS")
 SKIP_EXT = (".pub", ".png", ".jpg", ".pdf", ".bin")
 
 

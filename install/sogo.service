@@ -1,0 +1,17 @@
+[Unit]
+Description=Pochtamt: SOGo (календарь, контакты, веб-почта, ActiveSync) в Docker
+After=docker.service postgresql.service dovecot.service postfix.service
+Requires=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/sogo
+# контейнер в foreground: его вывод — в journal этой службы (journalctl -u sogo)
+ExecStart=/usr/bin/docker compose up --no-build --abort-on-container-exit
+ExecStop=/usr/bin/docker compose down
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

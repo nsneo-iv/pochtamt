@@ -12,6 +12,10 @@ install/nginx/, install/*.service, install/*.timer, install/sudoers-mail-agent, 
   ADMIN_ALLOW_RULES    — строки `allow <сеть>;` для nginx из ADMIN_ALLOW_NETS
   LAN_NETS_NFT / LAN_NETS_SPACE / LAN_NETS_COMMA — LAN_NETS для nftables, fail2ban и Rspamd
   DOVECOT_PASSDB_LDAP  — блок passdb ldap для Dovecot, если задан AD_LDAP_URI; иначе комментарий
+  DOVECOT_SOGO_IMAP    — слушатель IMAP 143 на loopback для SOGo, если задан SOGO_HOSTNAME
+  NFT_HTTPS_RULE       — 443 для всех (SOGo наружу) или только из LAN_NETS
+  SOGO_USER_SOURCES, SOGO_MAIL_DOMAIN, DOCKER_REGISTRY_MIRRORS_JSON — для шаблонов sogo/ и install.sh
+Шаблоны sogo/, install/nginx/sogo.conf и install/sogo.service собираются только при заданном SOGO_HOSTNAME.
 """
 import os
 import re
@@ -29,8 +33,11 @@ TEMPLATES = [
     "install/mail-ad-sync.service", "install/mail-ad-sync.timer",
     "install/mail-system-sample.service", "install/mail-system-sample.timer",
     "install/sudoers-mail-agent", "install/fail2ban", "install/nftables.conf", "db/schema_settings.sql",
+    "install/sogo.service", "sogo/sogo.conf", "sogo/db.sql", "sogo/docker-compose.yml",
 ]
-TEXT_EXT = (".cf", ".conf", ".inc", ".sql", ".php", ".service", ".timer", ".sieve", "")
+# шаблоны необязательного SOGo: без SOGO_HOSTNAME не рендерятся (их плейсхолдеры могут быть пустыми)
+SOGO_TEMPLATES = ("install/sogo.service", "sogo/", "install/nginx/sogo.conf")
+TEXT_EXT = (".cf", ".conf", ".inc", ".sql", ".php", ".service", ".timer", ".sieve", ".yml", "")
 
 
 def load_env() -> dict:
@@ -55,7 +62,59 @@ def load_env() -> dict:
     env["LAN_NETS_SPACE"] = " ".join(lan)
     env["LAN_NETS_COMMA"] = ", ".join(lan)
     env["DOVECOT_PASSDB_LDAP"] = dovecot_passdb_ldap(env)
+    sogo = bool(env.get("SOGO_HOSTNAME"))
+    env["DOVECOT_SOGO_IMAP"] = (
+        "  # IMAP без TLS только на loopback: для SOGo (контейнер в сети хоста); Dovecot считает localhost защищённым\n"
+        "  inet_listener imap {\n    listen = 127.0.0.1\n    port = 143\n  }" if sogo
+        else "  inet_listener imap {\n    port = 0\n  }")
+    env["NFT_HTTPS_RULE"] = ("tcp dport 443 accept   # SOGo опубликован наружу; панель закрыта allow-списком nginx"
+                             if sogo else "tcp dport 443 ip saddr @lan accept")
+    env["SOGO_MAIL_DOMAIN"] = env.get("MAIL_HOSTNAME", "").partition(".")[2] or env.get("MAIL_HOSTNAME", "")
+    env.setdefault("SOGO_WORKERS", "5")
+    env.setdefault("SOGO_TIMEZONE", "UTC")
+    env["SOGO_USER_SOURCES"] = sogo_user_sources(env)
+    env["DOCKER_REGISTRY_MIRRORS_JSON"] = ", ".join(f'"{m}"' for m in env.get("DOCKER_REGISTRY_MIRRORS", "").split())
     return env
+
+
+def sogo_user_sources(env: dict) -> str:
+    """Источники пользователей SOGo: локальные ящики (SQL, хеши {BLF-CRYPT}) и, если настроен AD, LDAP.
+    Плейсхолдеры внутри закрываются вторым проходом рендера."""
+    sql = """    {
+      type = sql;
+      id = mailboxes;
+      canAuthenticate = YES;
+      isAddressBook = YES;
+      displayName = "Сотрудники";
+      viewURL = "postgresql://sogo:@DB_SOGO_PASSWORD@@127.0.0.1:5432/mail/v_sogo_users";
+      userPasswordAlgorithm = blf-crypt;
+      prependPasswordScheme = YES;
+      IMAPLoginFieldName = c_uid;
+      MailFieldNames = (mail);
+    }"""
+    if not env.get("AD_LDAP_URI"):
+        return sql
+    ldap = """,
+    {
+      type = ldap;
+      id = ad;
+      canAuthenticate = YES;
+      isAddressBook = YES;
+      displayName = "Active Directory";
+      hostname = "@AD_LDAP_URI@";
+      baseDN = "@AD_BASE_DN@";
+      bindDN = "@AD_BIND_USER@";
+      bindPassword = "@AD_BIND_PASSWORD@";
+      bindFields = (userPrincipalName, mail);
+      filter = "(&(objectClass=user)(objectCategory=person)(mail=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))";
+      scope = SUB;
+      UIDFieldName = mail;
+      IDFieldName = mail;
+      CNFieldName = displayName;
+      IMAPLoginFieldName = mail;
+      MailFieldNames = (mail);
+    }"""
+    return sql + ldap
 
 
 def dovecot_passdb_ldap(env: dict) -> str:
@@ -108,10 +167,14 @@ def main() -> None:
         src = os.path.join(ROOT, rel)
         if not os.path.exists(src):
             continue
+        if not env.get("SOGO_HOSTNAME") and rel.startswith(SOGO_TEMPLATES):
+            continue
         files = [src] if os.path.isfile(src) else [
             os.path.join(d, n) for d, _, ns in os.walk(src) for n in ns if not n.endswith(".md")]
         for f in files:
             if os.path.splitext(f)[1] not in TEXT_EXT:
+                continue
+            if not env.get("SOGO_HOSTNAME") and os.path.relpath(f, ROOT).replace(os.sep, "/").startswith(SOGO_TEMPLATES):
                 continue
             dst = os.path.join(OUT, os.path.relpath(f, ROOT))
             if check:

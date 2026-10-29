@@ -36,6 +36,10 @@
 | `AD_CA_CERT` | PEM открытой части сертификата DC или его CA; `install.sh` кладёт в доверенные ОС и проверяет LDAPS |
 | `AD_DNS_ZONE`, `AD_FORWARD_DNS`, `AD_REVERSE_ZONES` | Внутренняя зона AD и её DNS: unbound форвардит их без DNSSEC |
 | `CLAMAV_MIRRORS` | Зеркала баз ClamAV по порядку; подлинность баз проверяется подписью |
+| `SOGO_HOSTNAME` | Имя сайта SOGo (календарь, контакты, веб-почта, ActiveSync в Docker). **Пусто — SOGo не ставится.** Должно отличаться от `ADMIN_HOSTNAME`; при SOGo 443 открыт для всех |
+| `DB_SOGO_PASSWORD` | Пароль роли `sogo` (своя база `sogo`, чтение `v_sogo_users` из `mail`) |
+| `SOGO_TIMEZONE`, `SOGO_WORKERS` | Часовой пояс календаря по умолчанию; число воркеров `sogod` (по одному на push-устройство ActiveSync плюс запас) |
+| `DOCKER_REGISTRY_MIRRORS` | Зеркала Docker Hub через пробел для сборки образа, если прямой доступ закрыт |
 | `SIEVE_MASTER_PASSWORD` | Пароль master-пользователя Dovecot `panel` (бэкенд заливает Sieve-скрипты через ManageSieve, вход только с localhost) |
 | `VM_HOST`, `VM_USER`, `SSH_KEY` | Для `deploy.sh`/`fetch-cert.sh` с рабочего ПК |
 
@@ -110,6 +114,9 @@
 `/var/lib/rspamd/maps`), веса символов, запрос обновления баз ClamAV.
 
 ## Что живёт в шаблонах
+
+Параметры SOGo, не вынесенные в `.env` (язык, видимость календарей по умолчанию, интервалы ActiveSync, лимиты
+неудачных входов), — в шаблоне `sogo/sogo.conf`.
 
 Порты и службы (`postfix/master.cf`, `dovecot/dovecot.conf`), ограничения smtpd и политика PTR
 (`postfix/main.cf`), шифры TLS, квоты по умолчанию, лимиты Sieve, модули Rspamd (`rspamd/local.d/*`), jail'ы

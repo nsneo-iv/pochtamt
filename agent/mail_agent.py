@@ -46,6 +46,8 @@ CMD_F2B_JAIL = [SUDO, "-n", "/usr/bin/fail2ban-client", "status"]          # + �
 CMD_LOG_TAIL = [SUDO, "-n", "/usr/bin/tail", "-c", "20000000", "/var/log/postfix.log"]
 SERVICES = ["postfix", "dovecot", "rspamd", "clamav-daemon", "clamav-freshclam", "redis-server", "postgresql",
             "nginx", "unbound", "fail2ban", "nftables", "mail-backend", "mail-agent"]
+if os.path.exists("/etc/systemd/system/sogo.service"):    # необязательный SOGo (install/sogo.service)
+    SERVICES.append("sogo")
 CERT_PATH = "/etc/ssl/mail/fullchain.pem"
 MOUNTS = ["/", "/var/vmail"]
 KEY_RE = re.compile(r"^[a-z_]{3,64}$")

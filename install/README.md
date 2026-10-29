@@ -13,7 +13,9 @@
 | `mail-usage-sync.*`, `mail-ad-sync.*`, `mail-system-sample.*` | таймеры: занятое место раз в 10 минут, синхронизация с AD раз в час (только при AD), выборка нагрузки раз в 5 минут |
 | `sudoers-mail-agent` | белый список команд агента (регулярные выражения sudo) |
 | `fail2ban/mail.conf` | jail'ы Postfix, SASL, Dovecot; `LAN_NETS` не банятся |
-| `nftables.conf` | файрвол: наружу 25/465/587/993 и 80; 443, 4190, 22, 10050 — из `LAN_NETS` |
+| `nftables.conf` | файрвол: наружу 25/465/587/993 и 80; 443, 4190, 22, 10050 — из `LAN_NETS` (443 для всех при SOGo) |
+| `nginx/sogo.conf` | сайт SOGo (при `SOGO_HOSTNAME`): `/SOGo`, статика, ActiveSync, `.well-known/caldav` |
+| `sogo.service` | systemd: контейнер SOGo через `docker compose` (при `SOGO_HOSTNAME`) |
 | `migrate/iredmail-export.sh` | на старом сервере iRedMail: выгрузка базы `vmail` в TSV (только чтение) |
 | `migrate/place-maildirs.py` | на новом сервере: разложить принятые Maildir'ы по `/var/vmail/<домен>/<ящик>` (`docs/migration-iredmail.md`) |
 

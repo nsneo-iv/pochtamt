@@ -26,6 +26,11 @@ load_env() {
     done <"$1"
 }
 load_env install/.env
+DOCKER_REGISTRY_MIRRORS_JSON=$(for m in ${DOCKER_REGISTRY_MIRRORS:-}; do printf '"%s", ' "$m"; done); DOCKER_REGISTRY_MIRRORS_JSON=${DOCKER_REGISTRY_MIRRORS_JSON%, }
+if [ -n "${SOGO_HOSTNAME:-}" ]; then
+    [ "$SOGO_HOSTNAME" != "$ADMIN_HOSTNAME" ] || die "SOGO_HOSTNAME должен отличаться от ADMIN_HOSTNAME (разные сайты nginx)"
+    [ -n "${DB_SOGO_PASSWORD:-}" ] || die "задайте DB_SOGO_PASSWORD в install/.env"
+fi
 
 log "пакеты"
 export DEBIAN_FRONTEND=noninteractive
@@ -59,7 +64,7 @@ if [ -n "${TLS_SRC_DIR:-}" ]; then
 elif [ ! -f "$TLS_CERT" ]; then
     echo "TLS_SRC_DIR пуст — самоподписанный сертификат для стенда"
     openssl req -x509 -nodes -newkey rsa:2048 -days 365 -subj "/CN=${MAIL_HOSTNAME}" \
-        -addext "subjectAltName=DNS:${MAIL_HOSTNAME},DNS:${ADMIN_HOSTNAME}" \
+        -addext "subjectAltName=DNS:${MAIL_HOSTNAME},DNS:${ADMIN_HOSTNAME}${SOGO_HOSTNAME:+,DNS:$SOGO_HOSTNAME}" \
         -keyout "$TLS_KEY" -out "$TLS_CERT" 2>/dev/null
 fi
 chmod 0640 "$TLS_KEY"; chown root:root "$TLS_KEY" "$TLS_CERT"
@@ -257,6 +262,35 @@ install -m 0440 install/out/install/sudoers-mail-agent /etc/sudoers.d/mail-agent
 cp install/out/install/mail-agent.service /etc/systemd/system/
 systemctl daemon-reload && systemctl enable --now mail-agent && systemctl restart mail-agent
 
+if [ -n "${SOGO_HOSTNAME:-}" ]; then
+    log "SOGo в Docker: ${SOGO_HOSTNAME}"
+    apt-get install -y -q docker.io docker-compose
+    # Docker не должен трогать файрвол хоста (nftables): контейнер работает в сети хоста, NAT и мосты не нужны
+    install -d /etc/docker
+    DAEMON_JSON="{\"iptables\": false, \"ip6tables\": false, \"bridge\": \"none\", \"registry-mirrors\": [${DOCKER_REGISTRY_MIRRORS_JSON:-}]}"
+    if [ "$(cat /etc/docker/daemon.json 2>/dev/null)" != "$DAEMON_JSON" ]; then
+        echo "$DAEMON_JSON" >/etc/docker/daemon.json
+        systemctl restart docker
+    fi
+    systemctl enable --now docker
+    # роль, представление в базе mail и своя база sogo
+    sudo -u postgres psql -q -d mail < install/out/sogo/db.sql
+    sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='sogo'" | grep -q 1 || sudo -u postgres createdb -O sogo sogo
+    # конфиг и данные: uid/gid 950 — пользователь sogo внутри контейнера
+    install -d -m 0750 /etc/sogo
+    install -m 0640 -o root -g 950 install/out/sogo/sogo.conf /etc/sogo/sogo.conf
+    install -m 0644 install/out/sogo/docker-compose.yml /etc/sogo/docker-compose.yml
+    rm -rf /etc/sogo/image && cp -r sogo/image /etc/sogo/image
+    install -d -o 950 -g 950 -m 0750 /var/lib/sogo/data
+    install -d -o 950 -g 950 -m 0755 /var/lib/sogo/www
+    ( cd /etc/sogo && docker compose build --pull -q ) || die "сборка образа SOGo не удалась (доступ к Docker Hub и deb.debian.org?)"
+    cp install/out/install/sogo.service /etc/systemd/system/
+    systemctl daemon-reload && systemctl enable --now sogo && systemctl restart sogo
+else
+    systemctl disable --now sogo 2>/dev/null || true
+    rm -f /etc/systemd/system/sogo.service
+fi
+
 log "фронтенд"
 if [ -f frontend/dist/index.html ]; then
     echo "dist собран заранее (deploy.sh), сборка на сервере не нужна"
@@ -275,8 +309,9 @@ nginx -t && systemctl enable --now nginx && systemctl reload nginx
 if [ -z "${TLS_SRC_DIR:-}" ] && [ -n "${CERTBOT_EMAIL:-}" ]; then
     log "TLS: Let's Encrypt (certbot, HTTP-01 через nginx на 80)"
     apt-get install -y -q certbot
-    DOMS=""; for d in ${CERTBOT_DOMAINS:-$MAIL_HOSTNAME}; do DOMS="$DOMS -d $d"; done
-    FIRST=${CERTBOT_DOMAINS:-$MAIL_HOSTNAME}; FIRST=${FIRST%% *}
+    CERT_NAMES=${CERTBOT_DOMAINS:-"$MAIL_HOSTNAME${SOGO_HOSTNAME:+ $SOGO_HOSTNAME}"}
+    DOMS=""; for d in $CERT_NAMES; do DOMS="$DOMS -d $d"; done
+    FIRST=${CERT_NAMES%% *}
     # shellcheck disable=SC2086
     certbot certonly --webroot -w /var/www/acme $DOMS --cert-name "$FIRST" --non-interactive --agree-tos \
         -m "$CERTBOT_EMAIL" --keep-until-expiring --deploy-hook "systemctl reload postfix dovecot nginx" \
@@ -307,4 +342,5 @@ cat <<EOF
      Rspamd:    https://${ADMIN_HOSTNAME}/rspamd/
   3. DNS: MX -> ${MAIL_HOSTNAME}, SPF, DKIM (из карточки домена в панели), DMARC, PTR.
   4. веб-почта (Roundcube и т.п.) — отдельный хост, ходит сюда по IMAP 993 / submission 587 / ManageSieve 4190 (docs/webmail.md)
+${SOGO_HOSTNAME:+  5. SOGo (календарь, контакты, веб-почта, ActiveSync): https://${SOGO_HOSTNAME}/SOGo/ — вход адресом ящика и паролем}
 EOF

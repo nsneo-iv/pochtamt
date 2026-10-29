@@ -80,6 +80,7 @@ const serviceLabels: Record<string, string> = {
   nftables: 'Файрвол',
   'mail-backend': 'Бэкенд панели',
   'mail-agent': 'Агент',
+  sogo: 'SOGo (календарь, веб-почта)',
 }
 
 const stateLabels: Record<string, string> = {

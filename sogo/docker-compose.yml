@@ -1,0 +1,32 @@
+# SOGo на почтовом хосте: один контейнер (sogod + memcached), собирается из пакетов Debian 13 (image/Dockerfile).
+# Сеть хоста: SOGo ходит к Dovecot (127.0.0.1:143), Postfix (127.0.0.1:587) и PostgreSQL (127.0.0.1:5432)
+# как локальный клиент и слушает только 127.0.0.1:20000. Запускается службой systemd `sogo` (install/sogo.service).
+services:
+  sogo:
+    build:
+      context: ./image
+      network: host      # мост Docker выключен (daemon.json): apt внутри сборки ходит через сеть хоста
+    image: pochtamt/sogo:debian13
+    container_name: sogo
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      SOGO_WORKERS: "@SOGO_WORKERS@"
+      TZ: "@SOGO_TIMEZONE@"
+    volumes:
+      - /etc/sogo/sogo.conf:/etc/sogo/sogo.conf:ro
+      - /var/lib/sogo/data:/var/lib/sogo
+      - /var/lib/sogo/www:/srv/www
+      # доверенные корни хоста: в них лежит сертификат контроллера домена для LDAPS
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    # лог контейнера попадает в journal службы sogo; файлы json-log не растут бесконечно
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # контейнер — обычный клиент почты и базы: без лишних прав
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID, CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt:
+      - no-new-privileges:true
